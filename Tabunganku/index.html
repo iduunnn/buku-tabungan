@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Tabungan Digital</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Hubungkan ke file CSS terpisah -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="p-4 md:p-8 relative min-h-screen">
+
+    <!-- Canvas Partikel Bergerak di Latar Belakang -->
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="max-w-5xl mx-auto space-y-6 relative z-10">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 glass p-6 rounded-2xl hover-glow">
+            <div>
+                <!-- Judul Utama Animasi Gradasi Biru-Ungu -->
+                <h1 class="text-2xl md:text-3xl font-bold animated-title-blue-purple">
+                    Buku Tabungan Ku
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Kelola dan catat keuangan pribadi kamu secara mandiri</p>
+            </div>
+            
+            <!-- Fitur Backup / Import -->
+            <div class="flex items-center gap-2">
+                <button onclick="exportData()" class="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-500/50 border border-indigo-400/40 text-indigo-200 rounded-xl text-sm font-medium transition duration-200 shadow-lg shadow-indigo-900/30">
+                    💾 Cadangkan
+                </button>
+                <label class="px-4 py-2 bg-slate-800/80 hover:bg-purple-900/40 border border-purple-500/30 text-purple-200 rounded-xl text-sm font-medium transition duration-200 cursor-pointer">
+                    📂 Pulihkan
+                    <input type="file" id="importFile" onchange="importData(event)" accept=".json" class="hidden">
+                </label>
+            </div>
+        </div>
+
+        <!-- Summary Cards (Tema Biru & Ungu) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Saldo Utama -->
+            <div class="glass p-6 rounded-2xl border-l-4 border-cyan-400 hover-glow">
+                <p class="text-sm font-medium text-slate-400">Total Saldo</p>
+                <h2 id="totalSaldo" class="text-3xl font-bold text-cyan-400 mt-2">Rp 0</h2>
+                <span class="text-xs text-slate-500 mt-2 block">Diperbarui secara real-time</span>
+            </div>
+
+            <!-- Total Pemasukan -->
+            <div class="glass p-6 rounded-2xl border-l-4 border-purple-500 hover-glow">
+                <p class="text-sm font-medium text-slate-400">Total Pemasukan</p>
+                <h2 id="totalMasuk" class="text-2xl font-bold text-purple-300 mt-2">Rp 0</h2>
+                <span class="text-xs text-slate-500 mt-2 block">Uang masuk / Tabungan</span>
+            </div>
+
+            <!-- Total Pengeluaran -->
+            <div class="glass p-6 rounded-2xl border-l-4 border-indigo-500 hover-glow">
+                <p class="text-sm font-medium text-slate-400">Total Pengeluaran</p>
+                <h2 id="totalKeluar" class="text-2xl font-bold text-indigo-300 mt-2">Rp 0</h2>
+                <span class="text-xs text-slate-500 mt-2 block">Uang keluar / Ambil</span>
+            </div>
+        </div>
+
+        <!-- Main Content (Form & Chart) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Form Input Transaksi -->
+            <div class="glass p-6 rounded-2xl lg:col-span-1 space-y-4 hover-glow">
+                <h2 class="text-lg font-bold animated-sub-blue-purple">Tambah Transaksi</h2>
+                <form id="formTabungan" onsubmit="tambahTransaksi(event)" class="space-y-4">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1">Keterangan</label>
+                        <input type="text" id="keterangan" required placeholder="Contoh: Nabung harian, Jajan" 
+                            class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-400">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1">Jenis Transaksi</label>
+                        <select id="tipe" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-400">
+                            <option value="masuk">📥 Pemasukan (Nabung)</option>
+                            <option value="keluar">📤 Pengeluaran (Ambil)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1">Kategori</label>
+                        <select id="kategori" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-400">
+                            <option value="Uang Saku">💵 Uang Saku</option>
+                            <option value="Tabungan">🏦 Tabungan</option>
+                            <option value="Makanan">🍜 Makanan & Minuman</option>
+                            <option value="Kebutuhan">🛒 Kebutuhan</option>
+                            <option value="Hiburan">🎮 Hiburan / Game</option>
+                            <option value="Lainnya">📦 Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1">Nominal (Rp)</label>
+                        <input type="number" id="nominal" required min="1" placeholder="10000" 
+                            class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-cyan-400">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-semibold rounded-xl text-sm transition duration-300 shadow-lg shadow-indigo-500/30">
+                        + Simpan Transaksi
+                    </button>
+                </form>
+            </div>
+
+            <!-- Visualisasi Diagram Chart -->
+            <div class="glass p-6 rounded-2xl lg:col-span-2 flex flex-col justify-between hover-glow">
+                <h2 class="text-lg font-bold animated-sub-blue-purple mb-2">Statistik Kategori</h2>
+                <div class="relative flex-grow flex items-center justify-center min-h-[250px]">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Tabel Riwayat Transaksi -->
+        <div class="glass p-6 rounded-2xl space-y-4 hover-glow">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <h2 class="text-lg font-bold animated-sub-blue-purple">Riwayat Transaksi</h2>
+                <div class="flex gap-2">
+                    <!-- Filter Kategori -->
+                    <select id="filterKategori" onchange="renderTabel()" class="bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-purple-400">
+                        <option value="semua">🔍 Semua Kategori</option>
+                        <option value="Uang Saku">💵 Uang Saku</option>
+                        <option value="Tabungan">🏦 Tabungan</option>
+                        <option value="Makanan">🍜 Makanan</option>
+                        <option value="Kebutuhan">🛒 Kebutuhan</option>
+                        <option value="Hiburan">🎮 Hiburan</option>
+                        <option value="Lainnya">📦 Lainnya</option>
+                    </select>
+                    <button onclick="hapusSemuaData()" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 rounded-xl text-xs transition duration-200">
+                        🗑️ Hapus Semua
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="text-xs uppercase bg-slate-800/80 text-purple-300">
+                        <tr>
+                            <th class="px-4 py-3 rounded-l-xl">Tanggal</th>
+                            <th class="px-4 py-3">Keterangan</th>
+                            <th class="px-4 py-3">Kategori</th>
+                            <th class="px-4 py-3">Nominal</th>
+                            <th class="px-4 py-3 text-right rounded-r-xl">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelRiwayat" class="divide-y divide-slate-800">
+                        <!-- Data riwayat dimasukkan lewat Javascript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Hubungkan ke file JavaScript terpisah -->
+    <script src="script.js"></script>
+</body>
+</html>
