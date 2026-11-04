@@ -1,0 +1,17 @@
+{
+  "name": "Buku Tabungan Ku",
+  "short_name": "TabunganKu",
+  "description": "Aplikasi pencatat keuangan dan target tabungan digital",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "icons": [
+    {
+      "src": "./icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
