@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TabunganKu | Buku Keuangan Premium</title>
+    <meta name="description" content="Catat dan kelola keuangan pribadi dengan presisi profesional">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050507">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="TabunganKu">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="p-4 md:p-8 relative min-h-screen selection:bg-gold/30 selection:text-white antialiased">
+
+    <canvas id="bgCanvas" aria-hidden="true"></canvas>
+
+    <div class="max-w-6xl mx-auto space-y-8 relative z-10">
+
+        <!-- Header -->
+        <header class="glass p-6 md:p-8 rounded-3xl hover-glow border-gold/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-gold to-gold-800 flex items-center justify-center shadow-lg shadow-gold/25">
+                    <span class="text-white font-bold text-lg">T</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white animated-title-gold">TabunganKu</h1>
+                    <p class="text-slate-400 text-sm">Catat dan kelola keuangan pribadi dengan presisi profesional</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="exportData()" class="px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/40 text-gold rounded-2xl text-sm font-semibold transition-all duration-300 shadow-lg shadow-gold/20 flex items-center gap-2">
+                    <span>💿</span> Cadangkan
+                </button>
+                <label class="px-4 py-2 bg-slate-900/80 hover:bg-gold/10 border border-gold/30 text-gold rounded-2xl text-sm font-semibold transition-all duration-300 cursor-pointer shadow-lg shadow-gold/10 flex items-center gap-2">
+                    <span>🗂️</span> Pulihkan
+                    <input type="file" id="importFile" onchange="importData(event)" accept=".json" class="hidden sr-only">
+                </label>
+            </div>
+        </header>
+
+        <!-- Dashboard Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass p-6 rounded-3xl border-l-4 border-gold hover-glow flex flex-col justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Saldo</p>
+                    <h2 id="totalSaldo" class="text-3xl md:text-4xl font-bold text-white mt-2">Rp 0</h2>
+                </div>
+                <span class="text-xs text-slate-500 mt-4 block">Sinkron otomatis ke browser</span>
+            </div>
+
+            <div class="glass p-6 rounded-3xl border-l-4 border-gold hover-glow flex flex-col justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pemasukan</p>
+                    <h2 id="totalMasuk" class="text-2xl md:text-3xl font-bold text-gold mt-2">Rp 0</h2>
+                </div>
+                <span class="text-xs text-slate-500 mt-2 block">Uang masuk dan tabungan</span>
+            </div>
+
+            <div class="glass p-6 rounded-3xl border-l-4 border-gold hover-glow flex flex-col justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pengeluaran</p>
+                    <h2 id="totalKeluar" class="text-2xl md:text-3xl font-bold text-gold mt-2">Rp 0</h2>
+                </div>
+                <span class="text-xs text-slate-500 mt-2 block">Uang keluar dan pengambilan</span>
+            </div>
+
+            <div class="glass p-6 rounded-3xl border-l-4 border-gold/40 hover-glow flex flex-col justify-between space-y-3">
+                <div id="targetImageContainer" class="w-full h-32 md:h-40 rounded-2xl overflow-hidden bg-slate-900/60 border border-gold/30 flex items-center justify-center relative">
+                    <span id="targetImagePlaceholder" class="text-4xl md:text-5xl opacity-40">💎</span>
+                    <img id="targetImageDisplay" src="" alt="Target" class="w-full h-full object-cover hidden">
+                    <button onclick="bukaModalTarget()" class="absolute top-2 right-2 px-3 py-1.5 bg-black/60 hover:bg-gold/90 border border-gold/40 text-gold rounded-xl text-xs font-bold backdrop-blur-md transition-all duration-300 shadow-lg shadow-gold/20">
+                        ✦ Atur Target
+                    </button>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-gold animated-sub-gold">Target Tabungan</h2>
+                        <span id="targetPercentageText" class="font-bold text-xs text-gold">0%</span>
+                    </div>
+                    <p id="targetTitleDisplay" class="text-xs text-slate-400 font-medium mt-0.5 truncate">Belum ada target</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">Progres:</span>
+                        <span class="font-semibold text-slate-200"><span id="targetCurrentText" class="text-gold">Rp 0</span> / <span id="targetMaxText" class="text-gold-700">Rp 0</span></span>
+                    </div>
+                    <div class="w-full bg-slate-900/90 rounded-full h-2.5 overflow-hidden border border-slate-700/60 p-0.5">
+                        <div id="targetProgressBar" class="bg-gradient-to-r from-gold via-gold-700 to-gold h-full rounded-full transition-all duration-1000 shadow-lg shadow-gold/30" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span id="targetStatusText" class="text-slate-400 truncate max-w-[240px]">Tentukan impian finansialmu</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Form -->
+            <div class="lg:col-span-4 glass p-6 rounded-3xl space-y-4 hover-glow">
+                <h2 class="text-lg font-bold text-gold animated-sub-gold">Tambah Transaksi</h2>
+                <form id="formTabungan" onsubmit="tambahTransaksi(event)" class="space-y-4" novalidate>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1.5">Keterangan</label>
+                        <input type="text" id="keterangan" required placeholder="Contoh: Gaji, Nabung harian" 
+                            class="w-full bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-gold transition-all duration-200"
+                            aria-label="Keterangan transaksi">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1.5">Jenis Transaksi</label>
+                        <select id="tipe" class="w-full bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-gold-700 transition-all duration-200" aria-label="Jenis transaksi">
+                            <option value="masuk">📥 Pemasukan</option>
+                            <option value="keluar">📤 Pengeluaran</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1.5">Kategori</label>
+                        <select id="kategori" class="w-full bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-gold transition-all duration-200" aria-label="Kategori">
+                            <option value="Uang Saku">💰 Uang Saku</option>
+                            <option value="Tabungan">🏛️ Tabungan</option>
+                            <option value="Makanan">🍽️ Makanan</option>
+                            <option value="Kebutuhan">🛒 Kebutuhan</option>
+                            <option value="Hiburan">🎮 Hiburan</option>
+                            <option value="Lainnya">📦 Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1.5">Nominal (Rp)</label>
+                        <input type="number" id="nominal" required min="1" placeholder="10000" 
+                            class="w-full bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-gold transition-all duration-200"
+                            aria-label="Nominal transaksi">
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-br from-gold via-gold-700 to-gold hover:from-gold-700 hover:to-gold text-white font-bold rounded-2xl text-sm transition-all duration-300 shadow-lg shadow-gold/30 transform hover:-translate-y-1 hover:shadow-gold/50 flex items-center justify-center gap-2">
+                        <span>+</span> Simpan Transaksi
+                    </button>
+                </form>
+            </div>
+
+            <!-- Chart -->
+            <div class="lg:col-span-8 glass p-6 rounded-3xl flex flex-col justify-between hover-glow">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-bold text-gold animated-sub-gold">Distribusi Kategori</h2>
+                    <span class="text-xs text-slate-500">Berdasarkan semua transaksi</span>
+                </div>
+                <div class="relative flex-grow flex items-center justify-center min-h-[320px]">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- History -->
+        <div class="glass p-6 rounded-3xl space-y-4 hover-glow">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-gold animated-sub-gold">Riwayat Transaksi</h2>
+                    <span id="emptyHistory" class="hidden text-xs text-slate-500">Belum ada data</span>
+                </div>
+                <div class="flex gap-2">
+                    <select id="filterKategori" onchange="renderTabel()" class="bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-gold-700 transition-all duration-200">
+                        <option value="semua">🔍 Semua Kategori</option>
+                        <option value="Uang Saku">💰 Uang Saku</option>
+                        <option value="Tabungan">🏛️ Tabungan</option>
+                        <option value="Makanan">🍽️ Makanan</option>
+                        <option value="Kebutuhan">🛒 Kebutuhan</option>
+                        <option value="Hiburan">🎮 Hiburan</option>
+                        <option value="Lainnya">📦 Lainnya</option>
+                    </select>
+                    <button onclick="hapusSemuaData()" class="px-3 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold rounded-xl text-xs transition-all duration-200">
+                        🗑️ Hapus Semua
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="text-xs uppercase bg-slate-800/60 text-gold">
+                        <tr>
+                            <th class="px-4 py-3 rounded-l-xl">Tanggal</th>
+                            <th class="px-4 py-3">Keterangan</th>
+                            <th class="px-4 py-3">Kategori</th>
+                            <th class="px-4 py-3">Nominal</th>
+                            <th class="px-4 py-3 text-right rounded-r-xl">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelRiwayat" class="divide-y divide-slate-800">
+                        <tr class="fade-in">
+                            <td colspan="5" class="text-center py-12 text-slate-500">
+                                <div class="text-4xl mb-3 opacity-50">📭</div>
+                                Belum ada catatan transaksi. Mulai catat transaksi pertama Anda.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Target -->
+    <div id="modalTarget" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-xl" role="dialog" aria-modal="true" aria-labelledby="modalTargetTitle">
+        <div class="glass p-7 rounded-3xl w-full max-w-md space-y-5 border border-gold/30 shadow-2xl transform transition-all duration-300 scale-100">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">💎</span>
+                <h3 id="modalTargetTitle" class="text-lg font-bold text-gold animated-sub-gold">Atur Target Tabungan</h3>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 block mb-1.5">Nama Target</label>
+                    <input type="text" id="inputTargetTitle" placeholder="Contoh: Beli Properti" 
+                        class="w-full bg-slate-900/90 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-gold-700 transition-all duration-200">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 block mb-1.5">Nominal Target (Rp)</label>
+                    <input type="number" id="inputTargetAmount" min="1" placeholder="Contoh: 50000000" 
+                        class="w-full bg-slate-900/90 border border-slate-700 rounded-2xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-gold-700 transition-all duration-200">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 block mb-1.5">Foto Impian (Opsional)</label>
+                    <input type="file" id="inputTargetImage" accept="image/*" 
+                        class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gold/20 file:text-gold hover:file:bg-gold/30 cursor-pointer bg-slate-900/90 border border-slate-700 rounded-2xl p-1">
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="simpanTarget()" class="flex-1 py-3 bg-gradient-to-br from-gold to-gold-700 hover:opacity-90 text-white font-bold rounded-2xl text-sm transition-all duration-300 shadow-lg shadow-gold/30">
+                    Simpan Target
+                </button>
+                <button onclick="tutupModalTarget()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold rounded-2xl text-sm transition-all duration-200">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="pointer-events-none"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./script.js').catch(() => {});
+            });
+        }
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>
